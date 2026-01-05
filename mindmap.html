@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Spirit Class: Academy of Knowledge</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Noto+Sans+Arabic:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --void-black: #000000;
+            --spirit-red: #D32F2F;
+            --dark-red: #8B0000;
+            --stark-white: #FFFFFF;
+            --deep-black: #0a0a0a;
+            --shadow-red: rgba(211, 47, 47, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--void-black);
+            color: var(--stark-white);
+            font-family: 'Noto Sans Arabic', sans-serif;
+            overflow-x: hidden;
+            width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .academy-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .title-panel {
+            font-family: 'Permanent Marker', cursive;
+            font-size: clamp(1.2rem, 5vw, 2.8rem);
+            color: var(--stark-white);
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--spirit-red);
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 5px solid var(--spirit-red);
+            transform: skew(-10deg);
+            padding: 0 20px;
+        }
+
+        .mind-map-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            height: 70vh;
+            min-height: 500px;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .mind-map {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            cursor: grab;
+        }
+
+        .mind-map:active {
+            cursor: grabbing;
+        }
+
+        /* Main Topic Nodes */
+        .node {
+            position: absolute;
+            background: var(--stark-white);
+            color: var(--void-black);
+            padding: 12px 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+            border: 2px solid var(--void-black);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            text-transform: uppercase;
+            text-align: center;
+            z-index: 10;
+            transform: translate(-50%, -50%);
+            min-width: 160px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .node small {
+            font-size: 1.1rem;
+            color: var(--dark-red);
+            margin-top: 5px;
+            font-weight: 900;
+        }
+
+        .node:hover {
+            background: var(--spirit-red);
+            color: var(--stark-white) !important;
+            transform: translate(-50%, -50%) scale(1.1) skew(-5deg);
+            box-shadow: 0 0 25px var(--spirit-red);
+        }
+
+        .node:hover small {
+            color: white;
+        }
+
+        /* Active Expanded Node State */
+        .node.active-node {
+            width: 320px;
+            height: auto;
+            min-height: 240px;
+            background: var(--void-black);
+            color: var(--stark-white) !important;
+            border: 3px solid var(--spirit-red);
+            clip-path: none;
+            cursor: default;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .node.active-node:hover {
+            transform: translate(-50%, -50%) scale(1);
+            box-shadow: 0 0 30px var(--shadow-red);
+        }
+
+        .node-header {
+            background: var(--spirit-red);
+            padding: 10px;
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .active-node .node-header {
+            display: flex;
+        }
+
+        .node-title-en {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 1.1rem;
+        }
+
+        .node-title-ar {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .mini-grid {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+            width: 100%;
+        }
+
+        .active-node .mini-grid {
+            display: grid;
+        }
+
+        /* Mini Windows inside Node */
+        .mini-window {
+            background: var(--stark-white);
+            color: var(--void-black);
+            border: 2px solid var(--spirit-red);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: 0.3s;
+            height: 70px;
+        }
+
+        .mini-window-title {
+            background: var(--spirit-red);
+            color: white;
+            font-size: 0.6rem;
+            padding: 2px 5px;
+            font-family: 'Permanent Marker', cursive;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mini-window-content {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .mini-window:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 5px 15px rgba(211, 47, 47, 0.3);
+        }
+
+        .central-node {
+            background: var(--spirit-red) !important;
+            color: white !important;
+            border: 4px solid var(--stark-white) !important;
+            padding: 20px 40px !important;
+            font-size: 1.3rem !important;
+            z-index: 20;
+            clip-path: none;
+            border-radius: 5px;
+        }
+
+        /* Overlay & Focused Modal Window */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .spirit-window {
+            width: 95%;
+            max-width: 650px;
+            background: var(--deep-black);
+            border: 6px solid var(--spirit-red);
+            position: relative;
+            padding: 40px 25px 25px;
+            box-shadow: 0 0 60px var(--shadow-red);
+            animation: windowEnter 0.4s ease-out;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        @keyframes windowEnter {
+            from {
+                transform: scale(0.8) translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .window-title-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: var(--spirit-red);
+            height: 30px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            color: white;
+            font-family: 'Permanent Marker', cursive;
+            justify-content: space-between;
+        }
+
+        .content-body {
+            background: var(--stark-white);
+            color: var(--void-black);
+            padding: 25px;
+            border: 2px solid var(--spirit-red);
+            position: relative;
+        }
+
+        .content-body h2 {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            border-bottom: 4px solid var(--spirit-red);
+            color: var(--void-black);
+        }
+
+        .close-icon {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .btn-action {
+            background: var(--void-black);
+            color: var(--stark-white);
+            border: 2px solid var(--spirit-red);
+            padding: 12px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            background: var(--spirit-red);
+            box-shadow: 0 0 10px var(--spirit-red);
+        }
+
+        .feedback-msg {
+            margin-top: 15px;
+            padding: 15px;
+            font-weight: bold;
+            border-left: 8px solid;
+            display: none;
+        }
+
+        .fb-correct {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+            color: #1b5e20;
+        }
+
+        .fb-wrong {
+            background: #ffebee;
+            border-color: #c62828;
+            color: #b71c1c;
+        }
+
+        /* Connections */
+        .line {
+            position: absolute;
+            background: var(--spirit-red);
+            height: 2px;
+            transform-origin: left center;
+            opacity: 0.4;
+            z-index: 5;
+            box-shadow: 0 0 5px var(--spirit-red);
+            pointer-events: none;
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .zoom-btn {
+            background: var(--void-black);
+            color: var(--stark-white);
+            border: 2px solid var(--spirit-red);
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: 0.2s;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .zoom-btn:hover {
+            background: var(--spirit-red);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 600px) {
+            .spirit-window {
+                padding: 35px 15px 15px;
+            }
+
+            .content-body {
+                padding: 15px;
+            }
+
+            .node {
+                padding: 10px;
+                min-width: 140px;
+            }
+
+            .sub-node-window {
+                width: 90px;
+                height: 70px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="academy-container">
+        <h1 class="title-panel">Academy of Knowledge</h1>
+        <div class="mind-map-wrapper" id="mapWrapper">
+            <div class="mind-map" id="mindMap">
+                <div class="node central-node" style="top: 50%; left: 50%;">KNOWLEDGE CENTER</div>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoom(0.1)">+</button>
+                <button class="zoom-btn" onclick="zoom(-0.1)">-</button>
+                <button class="zoom-btn" onclick="resetView()">↺</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spirit Modal -->
+    <div class="overlay" id="overlay">
+        <div class="spirit-window">
+            <div class="window-title-bar">
+                <span id="modalTitle">WINDOW SYSTEM</span>
+                <span class="close-icon" onclick="closeModal()">[X]</span>
+            </div>
+            <div class="content-body" id="windowContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const topics = [
+            {
+                id: 1, name: "Food & Requests", nameAr: "الأطعمة والطلبات", x: 20, y: 25,
+                lesson: { en: "Use 'I'd like' for polite orders. Add 'please' to show respect.", ar: "استخدم 'I'd like' للطلبات المهذبة. أضف 'من فضلك' لإظهار الاحترام." },
+                vocab: [{ en: "Apple pie", ar: "فطيرة تفاح" }, { en: "Soft drinks", ar: "مشروبات غازية" }, { en: "Green salad", ar: "سلطة خضراء" }, { en: "Steak", ar: "شريحة لحم" }, { en: "Main course", ar: "طبق رئيسي" }],
+                training: [{ q: "Which is more polite?", opts: ["I want chicken", "I'd like chicken, please"], ans: 1, tip: "Politeness is key! 'I'd like' is much better than 'I want'." }],
+                battle: [{ q: "It's a type of deserts:", opts: ["Apple pie", "Salad", "Soup"], ans: 0, tip: "Apple pie is a sweet treat from the dessert menu." }, { q: "I'd like a glass ___ water.", opts: ["of", "from", "in"], ans: 0, tip: "We use 'of' with containers: a glass of, a cup of." }]
+            },
+            {
+                id: 2, name: "Daily Routines", nameAr: "الروتين اليومي", x: 80, y: 25,
+                lesson: { en: "Present Simple is for habits. Add 's' for He/She/It.", ar: "المضارع البسيط للعادات. أضف 's' مع هو/هي/لغير العاقل." },
+                vocab: [{ en: "Usually", ar: "عادةً" }, { en: "Often", ar: "غالباً" }, { en: "Once a week", ar: "مرة في الأسبوع" }, { en: "Free time", ar: "وقت الفراغ" }],
+                training: [{ q: "She ____ to school every day.", opts: ["go", "goes"], ans: 1, tip: "Third-person singular (He/She/It) needs the '-s' ending!" }],
+                battle: [{ q: "He ___ a car.", opts: ["drives", "drive"], ans: 0, tip: "'He' is the subject, so we add 's' to the verb." }, { q: "How ___ do you workout?", opts: ["often", "When often"], ans: 0, tip: "'How often' checks the frequency of an action." }]
+            },
+            {
+                id: 3, name: "Actions Now", nameAr: "الأفعال الآن", x: 15, y: 75,
+                lesson: { en: "Present Continuous is for what's happening NOW.", ar: "المضارع المستمر لما يحدث الآن." },
+                vocab: [{ en: "Making soup", ar: "يصنع حساء" }, { en: "Hanging out", ar: "يتسكع" }],
+                training: [{ q: "Listen! The baby ____.", opts: ["cries", "is crying"], ans: 1, tip: "'Listen!' tells us it's happening right now." }],
+                battle: [{ q: "My sister is ___ a soup.", opts: ["making", "breaking"], ans: 0, tip: "You 'make' food, not 'break' it." }]
+            },
+            {
+                id: 4, name: "Quantities", nameAr: "الكميات", x: 85, y: 75,
+                lesson: { en: "Too much (uncountable), Too many (countable).", ar: "Too much (غير معدود)، Too many (معدود)." },
+                vocab: [{ en: "Too much", ar: "كثير جداً" }, { en: "Salty", ar: "مالح" }],
+                training: [{ q: "There is ____ sugar in my tea.", opts: ["too much", "too many"], ans: 0, tip: "Sugar is uncountable." }],
+                battle: [{ q: "It's ___ salty.", opts: ["too", "many"], ans: 0, tip: "'Too' is for intensity." }]
+            },
+            {
+                id: 5, name: "Future Ambition", nameAr: "طموح المستقبل", x: 50, y: 15,
+                lesson: { en: "Use 'want to be' for goals. 'Recommend' + verb-ing.", ar: "استخدم 'want to be' للأهداف. 'Recommend' يتبعها فعل-ing." },
+                vocab: [{ en: "Recommend", ar: "يوصي" }, { en: "Want to be", ar: "يريد أن يكون" }],
+                training: [{ q: "I enjoy ____ in the park.", opts: ["walking", "to walk"], ans: 0, tip: "'Enjoy' takes '-ing'." }],
+                battle: [{ q: "What do you ___ to be?", opts: ["want", "are"], ans: 0, tip: "Desired future uses 'want'." }]
+            },
+            {
+                id: 6, name: "Location & Relatives", nameAr: "الموقع والأقارب", x: 50, y: 85,
+                lesson: { en: "'Who' for people, 'Which' for things.", ar: "'Who' للناس، 'Which' للأشياء." },
+                vocab: [{ en: "Across from", ar: "مقابل" }, { en: "Behind", ar: "خلف" }],
+                training: [{ q: "The boy ____ is here is my friend.", opts: ["who", "which"], ans: 0, tip: "Boy = Who." }],
+                battle: [{ q: "The car ___ I like is red.", opts: ["which", "who"], ans: 0, tip: "Car = Which." }]
+            },
+            {
+                id: 7, name: "Reading Space", nameAr: "مساحة القراءة", x: 75, y: 50, type: 'reading',
+                text: "Mohammed feels tired lately. He is too busy. He plays basketball for his school team and works as a cashier three nights a week. He wants more free time. Next week he is going to have a vacation and he is very happy.",
+                battle: [{ q: "Who does he play for?", opts: ["School team", "Friends"], ans: 0, tip: "Check line 3." }, { q: "Work nights?", opts: ["Three", "Two"], ans: 0, tip: "He works three nights." }]
+            }
+        ];
+
+        let activeTopicId = null;
+
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function initBg() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            particles = Array.from({ length: 70 }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, s: Math.random() * 2 + 1, v: Math.random() * 0.4 + 0.1, o: Math.random() }));
+        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.y -= p.v; if (p.y < 0) p.y = canvas.height; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.fillStyle = `rgba(211,47,47,${p.o})`; ctx.fill(); });
+            requestAnimationFrame(draw);
+        }
+
+        function initMap() {
+            const map = document.getElementById('mindMap');
+            map.innerHTML = '<div class="node central-node" style="top: 50%; left: 50%;">KNOWLEDGE CENTER</div>';
+
+            topics.forEach(t => {
+                const n = document.createElement('div');
+                n.className = 'node';
+                n.style.left = t.x + '%';
+                n.style.top = t.y + '%';
+                n.innerHTML = `<div class="node-header"><div class="node-title-en">${t.name}</div><div class="node-title-ar">${t.nameAr}</div></div><div class="node-label">${t.name}<br><small>${t.nameAr}</small></div><div class="mini-grid"></div>`;
+                n.onclick = (e) => { e.stopPropagation(); toggleNode(t, n); };
+                map.appendChild(n);
+
+                const l = document.createElement('div');
+                l.className = 'line topic-line';
+                map.appendChild(l);
+                updLine(l, 50, 50, t.x, t.y);
+                window.addEventListener('resize', () => updLine(l, 50, 50, t.x, t.y));
+            });
+        }
+
+        function toggleNode(t, el) {
+            const wasActive = el.classList.contains('active-node');
+
+            // Close all nodes
+            document.querySelectorAll('.node').forEach(node => {
+                node.classList.remove('active-node');
+                const label = node.querySelector('.node-label');
+                if (label) label.style.display = 'block';
+            });
+
+            if (wasActive) {
+                activeTopicId = null;
+                return;
+            }
+
+            // Activate current node
+            el.classList.add('active-node');
+            const label = el.querySelector('.node-label');
+            if (label) label.style.display = 'none';
+            activeTopicId = t.id;
+
+            const grid = el.querySelector('.mini-grid');
+            grid.innerHTML = ''; // Clear previous
+
+            const subTypes = t.type === 'reading' ? ['TEXT', 'CHALLENGE'] : ['LESSON', 'VOCAB', 'TRAINING', 'BATTLE'];
+
+            subTypes.forEach((type, i) => {
+                const win = document.createElement('div');
+                win.className = 'mini-window';
+                win.innerHTML = `<div class="mini-window-title"><span>SECTION</span><span>_ □ x</span></div><div class="mini-window-content">${type}</div>`;
+                win.onclick = (ev) => { ev.stopPropagation(); openFocusedModal(t, type); };
+                grid.appendChild(win);
+            });
+        }
+
+        function updLine(l, x1, y1, x2, y2) {
+            const r = document.getElementById('mindMap').getBoundingClientRect();
+            const X1 = (x1 / 100) * r.width, Y1 = (y1 / 100) * r.height;
+            const X2 = (x2 / 100) * r.width, Y2 = (y2 / 100) * r.height;
+            const dx = X2 - X1, dy = Y2 - Y1;
+            const d = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx);
+            l.style.width = d + 'px'; l.style.left = X1 + 'px'; l.style.top = Y1 + 'px'; l.style.transform = `rotate(${a}rad)`;
+        }
+
+        function hideBranches() {
+            document.querySelectorAll('.node').forEach(node => {
+                node.classList.remove('active-node');
+                const label = node.querySelector('.node-label');
+                if (label) label.style.display = 'block';
+            });
+            activeTopicId = null;
+        }
+
+        function speak(txt) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(txt)); }
+
+        function openFocusedModal(t, type) {
+            const v = document.getElementById('windowContainer');
+            const title = document.getElementById('modalTitle');
+            document.getElementById('overlay').style.display = 'flex';
+            title.innerText = `${t.name} // ${type}`;
+
+            let html = '';
+            if (type === 'TEXT') {
+                html = `<h2>📖 STUDY ARCHIVE</h2><button class="btn-action" onclick="speak(\`${t.text}\`)">🔊 LISTEN TO TEXT</button><p style="font-size:1.3rem; margin-top:20px; line-height:1.5;">${t.text}</p>`;
+            } else if (type === 'CHALLENGE' || type === 'BATTLE') {
+                html = `<h2>⚔️ ${type} PHASE</h2>${t.battle.map((q, i) => `<div style="margin-bottom:25px; border-bottom:1px solid #ddd; padding-bottom:15px;"><p><strong>Q${i + 1}: ${q.q}</strong></p>${q.opts.map((o, oi) => `<button class="btn-action" onclick="checkAnswer(this,${oi === q.ans},'${q.tip.replace(/'/g, "\\'")}')">${o}</button>`).join('')}<div class="feedback-msg"></div></div>`).join('')}`;
+            } else if (type === 'LESSON') {
+                html = `<h2>📖 THE LESSON</h2><p style="font-size:1.2rem; border-left:5px solid var(--spirit-red); padding-left:15px;">${t.lesson.en}</p><hr style="margin:20px 0; border:none; border-top:2px solid #eee;"><p style="direction:rtl; color:var(--dark-red); font-size:1.5rem; font-weight:bold;">${t.lesson.ar}</p>`;
+            } else if (type === 'VOCAB') {
+                html = `<h2>📜 VOCAB BANK</h2><div style="max-height:300px; overflow-y:auto;">${t.vocab.map(x => `<div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0; border-bottom:1px solid #f0f0f0; padding-bottom:8px;"><span><strong style="font-size:1.2rem;">${x.en}</strong><br><small>${x.ar}</small></span><button class="btn-action" style="width:auto; margin:0;" onclick="speak('${x.en}')">🔊</button></div>`).join('')}</div>`;
+            } else if (type === 'TRAINING') {
+                html = `<h2>🥋 TRAINING</h2>${t.training.map(q => `<div><p><strong>${q.q}</strong></p>${q.opts.map((o, oi) => `<button class="btn-action" onclick="checkAnswer(this,${oi === q.ans},'${q.tip.replace(/'/g, "\\'")}')">${o}</button>`).join('')}<div class="feedback-msg"></div></div>`).join('')}`;
+            }
+            v.innerHTML = html;
+        }
+
+        function checkAnswer(b, ok, tip) {
+            const p = b.parentElement; const msg = p.querySelector('.feedback-msg');
+            p.querySelectorAll('.btn-action').forEach(x => x.disabled = true);
+            msg.style.display = 'block';
+            if (ok) { b.style.background = '#2e7d32'; b.innerHTML += ' ✅'; msg.className = 'feedback-msg fb-correct'; msg.innerText = 'EXCELLENT! You solved it.'; }
+            else { b.style.background = '#c62828'; b.innerHTML += ' ❌'; msg.className = 'feedback-msg fb-wrong'; msg.innerText = '💡 LEARNING TIP: ' + tip; }
+        }
+
+        function closeModal() { document.getElementById('overlay').style.display = 'none'; }
+        document.body.onclick = hideBranches;
+        window.onresize = () => { initBg(); initMap(); };
+        let scale = 1, panX = 0, panY = 0;
+        const mapEl = document.getElementById('mindMap');
+        const wrapper = document.getElementById('mapWrapper');
+        let isDragging = false, startX, startY;
+
+        function updateTransform() {
+            mapEl.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        }
+
+        function zoom(delta) {
+            scale = Math.max(0.5, Math.min(3, scale + delta));
+            updateTransform();
+        }
+
+        function resetView() {
+            scale = 1; panX = 0; panY = 0;
+            updateTransform();
+        }
+
+        wrapper.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.node') || e.target.closest('.zoom-controls')) return;
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            wrapper.style.cursor = 'grabbing';
+        });
+
+        wrapper.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        });
+
+        wrapper.addEventListener('mouseup', () => { isDragging = false; wrapper.style.cursor = 'default'; });
+        wrapper.addEventListener('mouseleave', () => { isDragging = false; wrapper.style.cursor = 'default'; });
+
+        wrapper.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            zoom(delta);
+        });
+
+        // Touch support
+        wrapper.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.node') || e.target.closest('.zoom-controls')) return;
+            isDragging = true;
+            startX = e.touches[0].clientX - panX;
+            startY = e.touches[0].clientY - panY;
+        });
+
+        wrapper.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            panX = e.touches[0].clientX - startX;
+            panY = e.touches[0].clientY - startY;
+            updateTransform();
+        });
+
+        wrapper.addEventListener('touchend', () => isDragging = false);
+
+        initBg(); draw(); initMap();
+    </script>
+</body>
+
+</html>
